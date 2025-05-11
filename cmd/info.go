@@ -1,14 +1,17 @@
 package cmd
 
 import (
-	"github.com/spf13/cobra"
 	"fmt"
 	"runtime"
+
+	"github.com/shirou/gopsutil/v4/host"
+	"github.com/spf13/cobra"
 )
+
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Information about the os, memory, disk usage and other metrics",
-	Long:  `Information about the os, memory, disk usage and other metrics.Run linate info --help for more options.`,
+	Long:  `Information about the os, memory, disk usage and other metrics. Run linate info --help for more options.`,
 	// Run: os_info,
 }
 
@@ -16,7 +19,7 @@ var osCmd = &cobra.Command{
 	Use:   "os",
 	Short: "Information about the os",
 	Long:  `Information about the os`,
-	Run: os_info,
+	Run:   os_info,
 }
 
 func init() {
@@ -26,16 +29,24 @@ func init() {
 	infoCmd.AddCommand(osCmd)
 }
 
-
-type osInfo struct {
-	OperatingSystem string
-	Architecture string
-	Distribution string
+type OsInfo struct {
+	Architecture  string
+	Distribution  string
+	Version       string
+	TotalMemory   string
+	KernelVersion string
 }
 
-func os_info(cmd *cobra.Command, args [] string) {
-	os := runtime.GOOS
-	arch := runtime.GOARCH
+type platform struct{}
 
-	fmt.Print("OS: ", os, "\nArchitecture: ", arch, "\n")
+func os_info(cmd *cobra.Command, args []string) {
+	var osinfo OsInfo
+	osinfo.Distribution, _, osinfo.Version, _ = host.PlatformInformation()
+	osinfo.KernelVersion, _ = host.KernelVersion()
+	osinfo.Architecture = runtime.GOARCH
+
+	fmt.Print("OS: ", osinfo.Distribution, " ", osinfo.Version, "\n")
+	fmt.Print("Architecture: ", osinfo.Architecture, "\n")
+	fmt.Print("Kernel: ", osinfo.KernelVersion, "\n")
+
 }
