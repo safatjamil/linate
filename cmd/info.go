@@ -1,10 +1,12 @@
 package cmd
 
 import (
+	"os"
 	"fmt"
-	// "math"
+	"bufio"
+	"strings"
 	"runtime"
-	// "strconv"
+	"strconv"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
@@ -12,11 +14,41 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	//osCmd.PersistentFlags().StringP("type", "-t", "", "os | memory | disk")
+	// infoCmd.PersistentFlags().StringP("dir", "-t", "", "os | memory | disk")
+	rootCmd.AddCommand(infoCmd)
+	infoCmd.AddCommand(osCmd)
+	infoCmd.AddCommand(memCmd)
+}
+
+var color = map[string]string{
+	"black": "\033[30m",
+	"red": "\033[31m",
+	"green": "\033[32m",
+	"yellow": "\033[33m",
+	"blue": "\033[34m",
+	"magenta": "\033[35m",
+	"cyan": "\033[36m",
+	"white": "\033[37m",
+	"reset": "\033[0m",
+}
+
+var file = map[string]string{
+	"memory": "/proc/meminfo",
+}
+
 var infoCmd = &cobra.Command{
 	Use:   "info",
 	Short: "Information about the os, memory, disk usage and other metrics",
 	Long:  `Information about the os, memory, disk usage and other metrics. Run linate info --help for more options.`,
-	// Run: os_info,
+}
+
+var memCmd = &cobra.Command{
+	Use:   "memory",
+	Short: "Information about the memory",
+	Long:  `Memory available, memory free, buffers, cached, swap, and others.`,
+	Run:   memory_info,
 }
 
 var osCmd = &cobra.Command{
@@ -24,13 +56,6 @@ var osCmd = &cobra.Command{
 	Short: "Information about the os",
 	Long:  `Information about the os`,
 	Run:   os_info,
-}
-
-func init() {
-	//osCmd.PersistentFlags().StringP("type", "-t", "", "os | memory | disk")
-	// infoCmd.PersistentFlags().StringP("dir", "-t", "", "os | memory | disk")
-	rootCmd.AddCommand(infoCmd)
-	infoCmd.AddCommand(osCmd)
 }
 
 type OsInfo struct {
@@ -44,27 +69,21 @@ type OsInfo struct {
 	TotalDisk     uint64
 }
 
-// type InfoStat struct {
-// 	CPU        int32    `json:"cpu"`
-// 	VendorID   string   `json:"vendorId"`
-// 	Family     string   `json:"family"`
-// 	Model      string   `json:"model"`
-// 	Stepping   int32    `json:"stepping"`
-// 	PhysicalID string   `json:"physicalId"`
-// 	CoreID     string   `json:"coreId"`
-// 	Cores      int32    `json:"cores"`
-// 	ModelName  string   `json:"modelName"`
-// 	Mhz        float64  `json:"mhz"`
-// 	CacheSize  int32    `json:"cacheSize"`
-// 	Flags      []string `json:"flags"`
-// 	Microcode  string   `json:"microcode"`
-// }
-
-type platform struct{}
+type MemoryInfo struct {
+    MemTotal     int
+    MemFree      int
+    MemAvailable int
+	Buffers      int
+	Cached       int
+	SwapCached   int
+	Active       int
+	Inactive     int
+	SwapTotal    int
+	SwapFree     int
+}
 
 func os_info(cmd *cobra.Command, args []string) {
-	var osinfo OsInfo
-	
+	osinfo := OsInfo{}
 	osinfo.Architecture = runtime.GOARCH
 	osinfo.Distribution, _, osinfo.Version, _ = host.PlatformInformation()
 	osinfo.KernelVersion, _ = host.KernelVersion()
@@ -76,14 +95,90 @@ func os_info(cmd *cobra.Command, args []string) {
 	buff, _ := mem.VirtualMemory()
 	osinfo.TotalMemory = buff.Total / 1048576
 
-	diskinfo, _ := disk.Usage("/home/shafat-jamil")
+	diskinfo, _ := disk.Usage("/")
 	osinfo.TotalDisk = diskinfo.Total / 1048576
 	
-	fmt.Print("OS: ", osinfo.Distribution, " ", osinfo.Version, "\n")
-	fmt.Print("Architecture: ", osinfo.Architecture, "\n")
-	fmt.Print("Kernel: ", osinfo.KernelVersion, "\n")
-	fmt.Print("CPU(s): ", osinfo.CPUCount, "\n")
-	fmt.Print("CPU Model: ", osinfo.CPUModel, "\n")
-	fmt.Print("Total Memory: ", osinfo.TotalMemory, " MB\n")
-    fmt.Print("Disk info: ", osinfo.TotalDisk, " MB\n")
+	title := [7]string{"OS", "Architecture", "Kernel", "CPU(s)", "CPU Mpdel", "Total Memoy", "Disk Size"}
+	text_color := color["yellow"]
+	reset_color := color["reset"]
+
+	fmt.Printf("%-20s %s%s %s%s\n", title[0], text_color, osinfo.Distribution, osinfo.Version, reset_color)
+	fmt.Printf("%-20s %s%s%s\n", title[1], text_color,  osinfo.Architecture, reset_color)
+    fmt.Printf("%-20s %s%s%s\n", title[2], text_color, osinfo.KernelVersion, reset_color)
+	fmt.Printf("%-20s %s%d%s\n", title[3], text_color, osinfo.CPUCount, reset_color)
+	fmt.Printf("%-20s %s%s%s\n", title[4], text_color, osinfo.CPUModel, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[5], text_color, osinfo.TotalMemory, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[6], text_color, osinfo.TotalDisk, reset_color)
+}
+
+
+func memory_info(cmd *cobra.Command, args []string) {
+	var memory MemoryInfo
+	memory = GetMemoryInfo()
+
+	title := [10]string{"Memory Total", "Memory Free", "Memory Available", "Buffers", "Cached", "SwapCached", "Active", "Inactive", "SwapTotal", "SwapFree"}
+	text_color := color["yellow"]
+	reset_color := color["reset"]
+
+	fmt.Printf("%-20s %s%d MB%s\n", title[0], text_color, memory.MemTotal, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[1], text_color, memory.MemFree, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[2], text_color, memory.MemAvailable, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[3], text_color, memory.Buffers, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[4], text_color, memory.Cached, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[5], text_color, memory.SwapCached, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[6], text_color, memory.Active, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[7], text_color, memory.Inactive, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[8], text_color, memory.SwapTotal, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[9], text_color, memory.SwapFree, reset_color)
+}
+
+func GetMemoryInfo() MemoryInfo {
+    f, e := os.Open(file["memory"])
+    if e != nil { panic("Please check the permission of the file /proc/meminfo. It must have read permission for 'others'.")}
+    defer f.Close()
+    scanner := bufio.NewScanner(f)
+	res := MemoryInfo{}
+    for scanner.Scan() {
+        key, value := parseLineForMemory(scanner.Text())
+		if key == "MemTotal" {
+			res.MemTotal = value / 1024
+		} else if key == "MemFree" {
+            res.MemFree = value/1024
+		} else if key == "MemAvailable" {
+            res.MemAvailable = value/1024
+		} else if key == "Buffers" {
+            res.Buffers = value/1024
+		} else if key == "Cached" {
+            res.Cached = value/1024
+		} else if key == "SwapCached" {
+            res.SwapCached = value/1024
+		} else if key == "Active" {
+            res.Active = value/1024
+		} else if key == "Inactive" {
+            res.Inactive = value/1024
+		} else if key == "SwapTotal" {
+            res.SwapTotal = value/1024
+		} else if key == "SwapFree" {
+            res.SwapFree = value/1024
+		}
+    }
+    return res
+}
+
+
+func parseLineForMemory(raw string) (key string, value int) {
+    res := strings.Split(strings.ReplaceAll(raw[:len(raw)-2], " ", ""), ":")
+    return res[0], toInt(res[1])
+}
+
+
+func toInt(raw string) int {
+    if raw == "" {
+        return 0
+    }
+    res, err := strconv.Atoi(raw)
+    if err != nil {
+        panic(err)
+    }
+    return res
 }
