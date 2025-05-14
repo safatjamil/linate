@@ -2,16 +2,19 @@ package cmd
 
 import (
 	"os"
+	"osstat"
 	"fmt"
 	"bufio"
 	"strings"
 	"runtime"
-	"strconv"
+	"log"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/disk"
+	"github.com/shirou/gopsutil/v4/load"
 	"github.com/spf13/cobra"
+	"github.com/mitchellh/go-ps"
 )
 
 func init() {
@@ -20,6 +23,7 @@ func init() {
 	rootCmd.AddCommand(infoCmd)
 	infoCmd.AddCommand(osCmd)
 	infoCmd.AddCommand(memCmd)
+	infoCmd.AddCommand(loadCmd)
 }
 
 var color = map[string]string{
@@ -44,6 +48,13 @@ var infoCmd = &cobra.Command{
 	Long:  `Information about the os, memory, disk usage and other metrics. Run linate info --help for more options.`,
 }
 
+var osCmd = &cobra.Command{
+	Use:   "os",
+	Short: "Information about the os",
+	Long:  `Information about distribution, architecture, CPU, memory, and disk.`,
+	Run:   os_info,
+}
+
 var memCmd = &cobra.Command{
 	Use:   "memory",
 	Short: "Information about the memory",
@@ -51,12 +62,13 @@ var memCmd = &cobra.Command{
 	Run:   memory_info,
 }
 
-var osCmd = &cobra.Command{
-	Use:   "os",
-	Short: "Information about the os",
-	Long:  `Information about the os`,
-	Run:   os_info,
+var loadCmd = &cobra.Command{
+	Use:   "load",
+	Short: "Information about the system's load",
+	Long:  `load1, load5, and load15`,
+	Run:  load_info,
 }
+
 
 type OsInfo struct {
 	Architecture  string
@@ -134,8 +146,11 @@ func memory_info(cmd *cobra.Command, args []string) {
 
 func GetMemoryInfo() MemoryInfo {
     f, e := os.Open(file["memory"])
-    if e != nil { panic("Please check the permission of the file /proc/meminfo. It must have read permission for 'others'.")}
-    defer f.Close()
+    if e != nil { 
+		log.Fatal("Pleasde check the permission of the file /proc/meminfo. It must have read permission for 'others'", e)
+	    defer f.Close()
+	    os.Exit(1)
+	}
     scanner := bufio.NewScanner(f)
 	res := MemoryInfo{}
     for scanner.Scan() {
@@ -172,13 +187,24 @@ func parseLineForMemory(raw string) (key string, value int) {
 }
 
 
-func toInt(raw string) int {
-    if raw == "" {
-        return 0
-    }
-    res, err := strconv.Atoi(raw)
-    if err != nil {
-        panic(err)
-    }
-    return res
+
+func load_info(cmd *cobra.Command, args []string){
+	l, e := load.Avg()
+    if e != nil {
+		log.Fatal("Can not read load information", e)
+		os.Exit(1)
+	}
+	title := [3]string{"Load1", "Load5", "Load15"}
+	text_color := color["yellow"]
+	reset_color := color["reset"]
+    fmt.Printf("%-15s %s%f%s\n", title[0], text_color, l.Load1, reset_color)
+	fmt.Printf("%-15s %s%f%s\n", title[1], text_color, l.Load5, reset_color)
+	fmt.Printf("%-15s %s%f%s\n", title[2], text_color, l.Load15, reset_color)
+
+	cpu, err := osstat.CPUInfo()
+	if err != nil {
+		lgo.Fatal("Can not read cpu information", err)
+		os.Exit(1)
+	}
+	fmt.Printf("CPU Usage: %v\n", cpu)
 }
