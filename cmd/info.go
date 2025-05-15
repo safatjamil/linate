@@ -2,31 +2,37 @@ package cmd
 
 import (
 	"os"
-	"osstat"
 	"fmt"
 	"bufio"
 	"strings"
 	"runtime"
 	"log"
+	"sort"
+	_"math"
 	"github.com/shirou/gopsutil/v4/host"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/load"
+	"github.com/shirou/gopsutil/process"
 	"github.com/spf13/cobra"
-	"github.com/mitchellh/go-ps"
+	_"github.com/fatih/color"
+    "github.com/rodaine/table"
+	// "github.com/mitchellh/go-ps"
 )
 
 func init() {
 	//osCmd.PersistentFlags().StringP("type", "-t", "", "os | memory | disk")
-	// infoCmd.PersistentFlags().StringP("dir", "-t", "", "os | memory | disk")
+	//infoCmd.PersistentFlags().StringP("dir", "-t", "", "os | memory | disk")
 	rootCmd.AddCommand(infoCmd)
 	infoCmd.AddCommand(osCmd)
 	infoCmd.AddCommand(memCmd)
 	infoCmd.AddCommand(loadCmd)
+	infoCmd.AddCommand(processCmd)
+	processCmd.Flags().String("type", "", "Get process information by memory and CPU usage. Available options are \`mem\` and `cpu`.")
 }
 
-var color = map[string]string{
+var colorss = map[string]string{
 	"black": "\033[30m",
 	"red": "\033[31m",
 	"green": "\033[32m",
@@ -69,6 +75,12 @@ var loadCmd = &cobra.Command{
 	Run:  load_info,
 }
 
+var processCmd = &cobra.Command{
+	Use:   "process",
+	Short: "Information about the system processes. Get CPU usage and memory usage.",
+	Long:  `Information about the system processes. Get CPU usage and memory usage.`,
+	Run:  process_info,
+}
 
 type OsInfo struct {
 	Architecture  string
@@ -94,6 +106,14 @@ type MemoryInfo struct {
 	SwapFree     int
 }
 
+type ProcessInfo struct {
+	PID           int32
+	User          string
+	Name          string
+	MemoryUsage   float32
+	CPUUsage      float64
+}
+
 func os_info(cmd *cobra.Command, args []string) {
 	osinfo := OsInfo{}
 	osinfo.Architecture = runtime.GOARCH
@@ -111,16 +131,16 @@ func os_info(cmd *cobra.Command, args []string) {
 	osinfo.TotalDisk = diskinfo.Total / 1048576
 	
 	title := [7]string{"OS", "Architecture", "Kernel", "CPU(s)", "CPU Mpdel", "Total Memoy", "Disk Size"}
-	text_color := color["yellow"]
-	reset_color := color["reset"]
+	text_colors := colors["yellow"]
+	reset_colors := colors["reset"]
 
-	fmt.Printf("%-20s %s%s %s%s\n", title[0], text_color, osinfo.Distribution, osinfo.Version, reset_color)
-	fmt.Printf("%-20s %s%s%s\n", title[1], text_color,  osinfo.Architecture, reset_color)
-    fmt.Printf("%-20s %s%s%s\n", title[2], text_color, osinfo.KernelVersion, reset_color)
-	fmt.Printf("%-20s %s%d%s\n", title[3], text_color, osinfo.CPUCount, reset_color)
-	fmt.Printf("%-20s %s%s%s\n", title[4], text_color, osinfo.CPUModel, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[5], text_color, osinfo.TotalMemory, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[6], text_color, osinfo.TotalDisk, reset_color)
+	fmt.Printf("%-20s %s%s %s%s\n", title[0], text_colors, osinfo.Distribution, osinfo.Version, reset_colors)
+	fmt.Printf("%-20s %s%s%s\n", title[1], text_colors,  osinfo.Architecture, reset_colors)
+    fmt.Printf("%-20s %s%s%s\n", title[2], text_colors, osinfo.KernelVersion, reset_colors)
+	fmt.Printf("%-20s %s%d%s\n", title[3], text_colors, osinfo.CPUCount, reset_colors)
+	fmt.Printf("%-20s %s%s%s\n", title[4], text_colors, osinfo.CPUModel, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[5], text_colors, osinfo.TotalMemory, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[6], text_colors, osinfo.TotalDisk, reset_colors)
 }
 
 
@@ -129,19 +149,19 @@ func memory_info(cmd *cobra.Command, args []string) {
 	memory = GetMemoryInfo()
 
 	title := [10]string{"Memory Total", "Memory Free", "Memory Available", "Buffers", "Cached", "SwapCached", "Active", "Inactive", "SwapTotal", "SwapFree"}
-	text_color := color["yellow"]
-	reset_color := color["reset"]
+	text_colors := colors["yellow"]
+	reset_colors := colors["reset"]
 
-	fmt.Printf("%-20s %s%d MB%s\n", title[0], text_color, memory.MemTotal, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[1], text_color, memory.MemFree, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[2], text_color, memory.MemAvailable, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[3], text_color, memory.Buffers, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[4], text_color, memory.Cached, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[5], text_color, memory.SwapCached, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[6], text_color, memory.Active, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[7], text_color, memory.Inactive, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[8], text_color, memory.SwapTotal, reset_color)
-	fmt.Printf("%-20s %s%d MB%s\n", title[9], text_color, memory.SwapFree, reset_color)
+	fmt.Printf("%-20s %s%d MB%s\n", title[0], text_colors, memory.MemTotal, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[1], text_colors, memory.MemFree, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[2], text_colors, memory.MemAvailable, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[3], text_colors, memory.Buffers, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[4], text_colors, memory.Cached, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[5], text_colors, memory.SwapCached, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[6], text_colors, memory.Active, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[7], text_colors, memory.Inactive, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[8], text_colors, memory.SwapTotal, reset_colors)
+	fmt.Printf("%-20s %s%d MB%s\n", title[9], text_colors, memory.SwapFree, reset_colors)
 }
 
 func GetMemoryInfo() MemoryInfo {
@@ -195,16 +215,65 @@ func load_info(cmd *cobra.Command, args []string){
 		os.Exit(1)
 	}
 	title := [3]string{"Load1", "Load5", "Load15"}
-	text_color := color["yellow"]
-	reset_color := color["reset"]
-    fmt.Printf("%-15s %s%f%s\n", title[0], text_color, l.Load1, reset_color)
-	fmt.Printf("%-15s %s%f%s\n", title[1], text_color, l.Load5, reset_color)
-	fmt.Printf("%-15s %s%f%s\n", title[2], text_color, l.Load15, reset_color)
+	text_colors := colors["yellow"]
+	reset_colors := colors["reset"]
+    fmt.Printf("%-15s %s%f%s\n", title[0], text_colors, l.Load1, reset_colors)
+	fmt.Printf("%-15s %s%f%s\n", title[1], text_colors, l.Load5, reset_colors)
+	fmt.Printf("%-15s %s%f%s\n", title[2], text_colors, l.Load15, reset_colors)
+}
 
-	cpu, err := osstat.CPUInfo()
-	if err != nil {
-		lgo.Fatal("Can not read cpu information", err)
-		os.Exit(1)
+type Person struct {
+	Name string
+	Age  int
+}
+
+
+func process_info(cmd *cobra.Command, args []string){
+	processes, e := process.Processes()
+    	if e != nil {
+    		log.Fatal("Can not read information about the processes", e)
+			os.Exit(1)
+    	}
+
+    
+		// Load the data into proc
+	var proc = make([]ProcessInfo, len(processes))
+	counter := 0
+    for _, p := range processes {
+		process := ProcessInfo{}
+		process.PID = p.Pid
+		process.User, _ = p.Username()
+		process.Name, _ = p.Name()
+		process.CPUUsage, _ = p.CPUPercent()
+		process.MemoryUsage, _ = p.MemoryPercent()
+        proc[counter] = process
+		counter += 1
+    }
+	
+    // Sort by memory usage
+	sort.Slice(proc, func(i, j int) bool {
+		return proc[i].MemoryUsage > proc[j].MemoryUsage
+	})
+	viewLength := 10
+	if viewLength > len(proc) {
+		viewLength = len(proc)
 	}
-	fmt.Printf("CPU Usage: %v\n", cpu)
+
+	headerFmt := colors.New(colors.FgGreen, colors.Underline).SprintfFunc()
+	columnFmt := colors.New(colors.FgYellow).SprintfFunc()
+  
+	tbl := table.New("ID", "Name", "User", "Memory Usage", "CPU Usage")
+	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+  
+	for _, widget := range getWidgets() {
+	  tbl.AddRow(widget.ID, widget.Name, widget.Cost, widget.Added)
+	}
+  
+	tbl.Print()
+
+	// fmt.Print(viewLength)
+	// for i := 0; i < viewLength; i++{
+	// 	fmt.Print(proc[i])
+	// 	fmt.Print("\n")
+	// }
 }
