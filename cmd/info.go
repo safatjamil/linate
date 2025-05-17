@@ -4,12 +4,14 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/jackpal/gateway"
 	"github.com/rodaine/table"
 	"github.com/shirou/gopsutil/process"
 	"github.com/shirou/gopsutil/v4/cpu"
@@ -18,19 +20,20 @@ import (
 	"github.com/shirou/gopsutil/v4/load"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/spf13/cobra"
-	// "github.com/mitchellh/go-ps"
 )
 
 func init() {
 	//osCmd.PersistentFlags().StringP("type", "-t", "", "os | memory | disk")
 	//infoCmd.PersistentFlags().StringP("dir", "-t", "", "os | memory | disk")
 	rootCmd.AddCommand(infoCmd)
+	rootCmd.AddCommand(netCmd)
 	infoCmd.AddCommand(osCmd)
 	infoCmd.AddCommand(memCmd)
 	infoCmd.AddCommand(loadCmd)
 	infoCmd.AddCommand(processCmd)
 	processCmd.Flags().StringP("type", "t", "", "Get process information by memory and CPU usage. Available options are mem and cpu.")
 	processCmd.MarkFlagRequired("type")
+	netCmd.AddCommand(netDetailsCmd)
 }
 
 var colors = map[string]string{
@@ -83,6 +86,19 @@ var processCmd = &cobra.Command{
 	Run:   process_info,
 }
 
+var netCmd = &cobra.Command{
+	Use:   "net",
+	Short: "Information about the network interfaces, ports, and incoming/outgoing requests.",
+	Long:  `Information about the network interfaces, ports, and incoming/outgoing requests.. Run linate net --help for more options.`,
+}
+
+var netDetailsCmd = &cobra.Command{
+	Use:   "details",
+	Short: "Information about the network interfaces",
+	Long:  `Information about the network interfaces`,
+	Run:   net_details_info,
+}
+
 type OsInfo struct {
 	Architecture  string
 	Distribution  string
@@ -113,6 +129,12 @@ type ProcessInfo struct {
 	Name        string
 	MemoryUsage float32
 	CPUUsage    float64
+}
+
+type NetDetails struct {
+	InterfaceName string
+	MacAddress    string
+	IpAddress     string
 }
 
 func os_info(cmd *cobra.Command, args []string) {
@@ -223,7 +245,7 @@ func process_info(cmd *cobra.Command, args []string) {
 	typ, _ := cmd.Flags().GetString("type")
 	var display_type string
 	if typ != "mem" && typ != "cpu" {
-		log.Fatal("Incorrect value for the flag --type. Available options are mem and cpu")
+		log.Fatal("Incorrect value for the flag --type. Available options are mem and cpu.")
 		os.Exit(1)
 	}
 	processes, e := process.Processes()
@@ -242,6 +264,7 @@ func process_info(cmd *cobra.Command, args []string) {
 		process.Name, _ = p.Name()
 		process.CPUUsage, _ = p.CPUPercent()
 		process.MemoryUsage, _ = p.MemoryPercent()
+		// process.CreationTime, _ = p.CreateTime()
 		proc[counter] = process
 		counter += 1
 	}
@@ -274,15 +297,62 @@ func process_info(cmd *cobra.Command, args []string) {
 			tbl.AddRow(proc[i].PID, proc[i].Name, proc[i].User, memuse)
 		}
 	} else if typ == "cpu" {
-		tbl := table.New("Process ID", "Name", "User", display_type)
 		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 		for i := 0; i < viewLength; i++ {
-			fmt.Printf("%f \n", proc[i].CPUUsage)
 			cpuuse := fmt.Sprintf("%.2f", proc[i].CPUUsage)
-			fmt.Printf("%s \n", cpuuse)
 			tbl.AddRow(proc[i].PID, proc[i].Name, proc[i].User, cpuuse)
 		}
 	}
 
 	tbl.Print()
+}
+
+func net_details_info(cmd *cobra.Command, args []string) {
+	interfaces, e := net.Interfaces()
+	if e != nil {
+		log.Fatal("Failed to get network interface information: ", e)
+		os.Exit(1)
+	}
+	var intfc = make([]NetDetails, len(interfaces))
+	counter := 0
+
+	// loop through the network interfaces
+	for _, inter := range interfaces {
+		intfc[counter].InterfaceName = inter.Name
+		address := ""
+		// Get a list of IP addresses for this network interface
+		addrs, e := inter.Addrs()
+		if e != nil {
+			log.Fatal("Failed to obtain IP address list: ", e)
+			os.Exit(1)
+		}
+		for _, addr := range addrs {
+			address = fmt.Sprintf("%s %s \n", address, addr)
+		}
+		intfc[counter].IpAddress = address
+
+		// Get the MAC address of the network interface
+		mac := inter.HardwareAddr
+		intfc[counter].MacAddress = fmt.Sprintf("%s", mac)
+		counter += 1
+	}
+	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+	columnFmt := color.New(color.FgYellow).SprintfFunc()
+	tbl := table.New("Interface Name", "MAC address", "IP Address(s)")
+	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+	for i := 0; i < len(intfc); i++ {
+		tbl.AddRow(intfc[i].InterfaceName, intfc[i].MacAddress, intfc[i].IpAddress)
+	}
+	tbl.Print()
+
+	gatewayIP, e := gateway.DiscoverGateway()
+	if e != nil {
+		log.Fatal("Cannot read gateway information.", e)
+		os.Exit(1)
+	}
+	fmt.Println("")
+	title := [1]string{"Gateway"}
+	text_color := colors["yellow"]
+	reset_color := colors["reset"]
+	fmt.Printf("%-15s %s%s%s\n", title[0], text_color, gatewayIP, reset_color)
 }
