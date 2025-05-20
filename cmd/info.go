@@ -27,7 +27,6 @@ func init() {
 	infoCmd.AddCommand(processCmd)
 	processCmd.Flags().StringP("type", "t", "", "Get process information by memory and CPU usage. Available options are mem and cpu.")
 	processCmd.MarkFlagRequired("type")
-	netCmd.AddCommand(netDetailsCmd)
 }
 
 var colors = map[string]string{
@@ -110,12 +109,6 @@ type ProcessInfo struct {
 	Name        string
 	MemoryUsage float32
 	CPUUsage    float64
-}
-
-type NetDetails struct {
-	InterfaceName string
-	MacAddress    string
-	IpAddress     string
 }
 
 func os_info(cmd *cobra.Command, args []string) {

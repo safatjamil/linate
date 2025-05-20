@@ -22,4 +22,5 @@ func Execute() {
 func init() {
 	rootCmd.AddCommand(infoCmd)
 	rootCmd.AddCommand(netCmd)
+	rootCmd.AddCommand(backUpCmd)
 }
