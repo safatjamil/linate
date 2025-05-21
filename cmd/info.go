@@ -47,35 +47,35 @@ var file = map[string]string{
 
 var infoCmd = &cobra.Command{
 	Use:   "info",
-	Short: "Information about the os, memory, disk usage and other metrics",
+	Short: "Information about the os, memory, disk and other metrics.",
 	Long:  `Information about the os, memory, disk usage and other metrics. Run linate info --help for more options.`,
 }
 
 var osCmd = &cobra.Command{
 	Use:   "os",
-	Short: "Information about the os",
+	Short: "Information about the os.",
 	Long:  `Information about distribution, architecture, CPU, memory, and disk.`,
 	Run:   os_info,
 }
 
 var memCmd = &cobra.Command{
 	Use:   "memory",
-	Short: "Information about the memory",
+	Short: "Information about the memory.",
 	Long:  `Memory available, memory free, buffers, cached, swap, and others.`,
 	Run:   memory_info,
 }
 
 var loadCmd = &cobra.Command{
 	Use:   "load",
-	Short: "Information about the system's load",
-	Long:  `load1, load5, and load15`,
+	Short: "Information about the system's load.",
+	Long:  `load1, load5, and load15.`,
 	Run:   load_info,
 }
 
 var processCmd = &cobra.Command{
 	Use:   "process",
-	Short: "Information about the system processes. Get CPU usage and memory usage.",
-	Long:  `Information about the system processes. Get CPU usage and memory usage.`,
+	Short: "Information about the system processes. Get processes by CPU and memory usage.",
+	Long:  `Information about the system processes. Get processes by CPU and memory usage.`,
 	Run:   process_info,
 }
 

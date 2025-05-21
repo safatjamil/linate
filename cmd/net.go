@@ -18,34 +18,32 @@ import (
 func init() {
 	netCmd.AddCommand(netDetailsCmd)
 	netCmd.AddCommand(netConnCmd)
-	netCmd.AddCommand(netGetCmd)
-
 }
 
 var netCmd = &cobra.Command{
 	Use:   "net",
 	Short: "Information about the network interfaces, ports, and incoming/outgoing requests.",
-	Long:  `Information about the network interfaces, ports, and incoming/outgoing requests.. Run linate net --help for more options.`,
+	Long:  `Information about the network interfaces, ports, and incoming/outgoing requests. Run linate net --help for more options.`,
 }
 
 var netDetailsCmd = &cobra.Command{
 	Use:   "details",
-	Short: "Information about the network interfaces and gateway",
-	Long:  `Information about the network interfaces and gateway`,
+	Short: "Information about the network interfaces and gateway.",
+	Long:  `Information about the network interfaces and gateway.`,
 	Run:   net_details_info,
 }
 
 var netConnCmd = &cobra.Command{
 	Use:   "conn",
-	Short: "Internet connection is available or not",
-	Long:  `Internet connection is available or not`,
+	Short: "Internet connection is available or not.",
+	Long:  `Internet connection is available or not.`,
 	Run:   net_conn_info,
 }
 
 var netGetCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Information about the listening connections",
-	Long:  `Information about the listening connections`,
+	Short: "Information about the listening connections.",
+	Long:  `Information about the listening connections.`,
 	Run:   net_get_info,
 }
 
@@ -105,8 +103,7 @@ var portMap = map[string]string{
 func net_details_info(cmd *cobra.Command, args []string) {
 	interfaces, e := net.Interfaces()
 	if e != nil {
-		log.Fatal("Failed to get network interface information: ", e)
-		os.Exit(1)
+		exitWithError("Failed to get network interface information.")
 	}
 	var intfc = make([]NetDetails, len(interfaces))
 	counter := 0
@@ -118,8 +115,7 @@ func net_details_info(cmd *cobra.Command, args []string) {
 		// Get a list of IP addresses for this network interface
 		addrs, e := inter.Addrs()
 		if e != nil {
-			log.Fatal("Failed to obtain IP address list: ", e)
-			os.Exit(1)
+			lexitWithError("Failed to obtain IP address list.")
 		}
 		for _, addr := range addrs {
 			address = fmt.Sprintf("%s %s \n", address, addr)
@@ -142,8 +138,7 @@ func net_details_info(cmd *cobra.Command, args []string) {
 
 	gatewayIP, e := gateway.DiscoverGateway()
 	if e != nil {
-		log.Fatal("Cannot read gateway information.", e)
-		os.Exit(1)
+		exitWithError("Cannot read gateway information.")
 	}
 	fmt.Println("")
 	title := [1]string{"Gateway"}
@@ -155,9 +150,9 @@ func net_details_info(cmd *cobra.Command, args []string) {
 func net_conn_info(cmd *cobra.Command, args []string) {
 	_, e := net.DialTimeout("tcp", "8.8.8.8:53", 15*time.Second)
 	if e != nil {
-		fmt.Printf("%s Internet connection is not available%s\n", colors["red"], colors["reset"])
+		fmt.Printf("%sInternet connection is not available%s\n", colors["red"], colors["reset"])
 	} else {
-		fmt.Printf("%s Internet connection is available%s\n", colors["green"], colors["reset"])
+		fmt.Printf("%sInternet connection is available%s\n", colors["green"], colors["reset"])
 	}
 }
 
@@ -165,7 +160,7 @@ func net_get_info(cmd *cobra.Command, args []string) {
 	// UDP sockets
 	socks, e := netstat.UDPSocks(netstat.NoopFilter)
 	if e != nil {
-		log.Fatal("Failed to obtain UDP connections: ", e)
+		exitWithError("Failed to obtain UDP connections.")
 		os.Exit(1)
 	}
 	var socket = make([]Socket, len(socks))
