@@ -25,7 +25,9 @@ func init() {
 	infoCmd.AddCommand(memCmd)
 	infoCmd.AddCommand(loadCmd)
 	infoCmd.AddCommand(processCmd)
+	infoCmd.AddCommand(usersCmd)
 	processCmd.Flags().StringP("sort", "s", "", "Get process information by memory and CPU usage. Available options are mem and cpu.")
+	processCmd.MarkFlagRequired("sort")
 }
 
 var colors = map[string]string{
@@ -78,6 +80,14 @@ var processCmd = &cobra.Command{
 	Run:   process_info,
 }
 
+var usersCmd = &cobra.Command{
+	Use:   "users",
+	Short: "Information about system users, last login time and their privilege.",
+	Long:  `Information about system users, last login time and their privilege.`,
+	Run:   users_info,
+}
+
+
 type OsInfo struct {
 	Architecture  string
 	Distribution  string
@@ -110,6 +120,16 @@ type ProcessInfo struct {
 	CPUUsage     float64
 	CreationTime string
 }
+
+type userInfo struct {
+	userName       string
+	userID         string
+	groupID        string
+	description    string
+	homeDirectory  string
+	shell          string
+}
+
 
 func os_info(cmd *cobra.Command, args []string) {
 	osinfo := OsInfo{}
@@ -219,7 +239,7 @@ func process_info(cmd *cobra.Command, args []string) {
 	var display_type string
 
 	if srt != "mem" && srt != "cpu" && srt != "longrun" {
-		exitWithError("Incorrect value for the flag --type. Available options are mem, cpu, and longrun.")
+		exitWithError("Incorrect value for the flag --sort. Available options are mem, cpu, and longrun.\n")
 	}
 	processes, e := process.Processes()
 	if e != nil {
@@ -289,4 +309,73 @@ func process_info(cmd *cobra.Command, args []string) {
 		}
 	}
 	tbl.Print()
+}
+
+
+var shells = [] string {"bash", "csh", "ksh", "mksh", "oksh", "sh", "tcsh", "yash", "zsh"}
+var rootUserGroups = [] string {"sudo", "sudoers", "admin", "wheel", "staff"}
+func users_info(cmd *cobra.Command, args []string) {
+	currYear :=  time.Now().Year()
+	currentUser, _ := getCurrentUser()
+	su := ""
+	for _, g := range rootUserGroups{
+        h, _ := getUsersByGroup(g)
+		if h != "" {
+			su += su + "," + h
+		}
+	}
+	superusers := strings.Split(su, ",")
+	usrs , e, size := list_users()
+	if e != nil {
+		fmt.Printf("%v\n", e)
+		os.Exit(0)
+	}
+	realUsers := make([]userInfo, size)
+	counter := 0
+	realUsersCounter := 0
+	for _, v := range usrs {
+		if v.shell != "" {
+		  shl := strings.Split(v.shell, "/")
+		  if len(shl) >1 && arrContains(shells, shl[len(shl)-1]) {
+			realUsers[realUsersCounter].userName = v.userName
+			realUsers[realUsersCounter].userID = v.userID
+			realUsers[realUsersCounter].groupID = v.groupID
+			realUsers[realUsersCounter].description = v.description
+			realUsers[realUsersCounter].shell = v.shell
+			realUsersCounter += 1
+		  }
+		}
+		counter += 1
+		if counter == size {
+			break
+		}
+	}
+    
+	if realUsersCounter > 1 {
+		headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+		columnFmt := color.New(color.FgYellow).SprintfFunc()
+		tbl := table.New("Username", "userID", "Description", "Shell", "Last Login", "Root Privilege")
+		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+		for i := 0; i < realUsersCounter; i++ {
+			rootPrivilege := "No"
+			if arrContains(superusers, realUsers[i].userName) || realUsers[i].userName == "root" {
+				rootPrivilege = "Yes"
+			}
+			if currentUser != "" && currentUser == realUsers[i].userName {
+				tbl.AddRow(realUsers[i].userName, realUsers[i].userID, realUsers[i].description, realUsers[i].shell, "Logged in now", rootPrivilege)
+				continue
+			}
+			lTime, e := getLastLogin(realUsers[i].userName)
+			if e!= nil && (currYear - lTime.Year() <= 1){
+			  tbl.AddRow(realUsers[i].userName, realUsers[i].userID, realUsers[i].description, realUsers[i].shell, fmt.Sprintf("%v", lTime), rootPrivilege)
+			} else {
+			  tbl.AddRow(realUsers[i].userName, realUsers[i].userID, realUsers[i].description, realUsers[i].shell, fmt.Sprintf("%v", e), rootPrivilege)
+			}
+		}
+		tbl.Print()
+    } else {
+		fmt.Printf("%sNo users found%s\n", colors["red"], colors["reset"])
+	}
+
+
 }

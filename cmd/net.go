@@ -18,6 +18,7 @@ import (
 func init() {
 	netCmd.AddCommand(netDetailsCmd)
 	netCmd.AddCommand(netConnCmd)
+	netCmd.AddCommand(netInfoCmd)
 }
 
 var netCmd = &cobra.Command{
@@ -35,13 +36,13 @@ var netDetailsCmd = &cobra.Command{
 
 var netConnCmd = &cobra.Command{
 	Use:   "conn",
-	Short: "Internet connection is available or not.",
-	Long:  `Internet connection is available or not.`,
+	Short: "Check the internet connection.",
+	Long:  `Check the internet connection.`,
 	Run:   net_conn_info,
 }
 
-var netGetCmd = &cobra.Command{
-	Use:   "get",
+var netInfoCmd = &cobra.Command{
+	Use:   "info",
 	Short: "Information about the listening connections.",
 	Long:  `Information about the listening connections.`,
 	Run:   net_get_info,
@@ -163,52 +164,51 @@ func net_get_info(cmd *cobra.Command, args []string) {
 		exitWithError("Failed to obtain UDP connections.")
 		os.Exit(1)
 	}
-	var socket = make([]Socket, len(socks))
+	var socket = make([]Socket, 2000)
 	counter := 0
+	fmt.Printf("||||||UDP SOCKETS||||||\n")
 	for _, u := range socks {
-		fmt.Printf("%v\n", u)
 		la := strings.Split(fmt.Sprintf("%s", u.LocalAddr), ":")
-		//ra := strings.Split(fmt.Sprintf("%s", u.RemoteAddr), ":")
+		ra := strings.Split(fmt.Sprintf("%s", u.RemoteAddr), ":")
 		socket[counter].localIP = la[0]
 		socket[counter].localPort = la[1]
-
-		// socket[counter].remoteAddr = fmt.Sprintf("%s", u.RemoteAddr)
-		// socket[counter].
-		fmt.Printf("%s", la[0])
-		fmt.Printf("\n")
+		socket[counter].remoteIP = ra[0]
+		socket[counter].remotePort = ra[1]
+		// fmt.Printf("%s:%s -- %s:%s",la[0],la[1],ra[0],ra[1])
+		// fmt.Printf("\n")
 		counter += 1
 	}
 
-	for _, v := range socket {
-		fmt.Printf("%s", v.localIP)
-		fmt.Printf("\n")
+	socks, _ = netstat.TCPSocks(netstat.NoopFilter)
+	fmt.Printf("||||||TCP SOCKETS||||||\n")
+	for _, u := range socks {
+		la := strings.Split(fmt.Sprintf("%s", u.LocalAddr), ":")
+		ra := strings.Split(fmt.Sprintf("%s", u.RemoteAddr), ":")
+		socket[counter].localIP = la[0]
+		socket[counter].localPort = la[1]
+		socket[counter].remoteIP = ra[0]
+		socket[counter].remotePort = ra[1]
+		// fmt.Printf("%s:%s -- %s:%s",la[0],la[1],ra[0],ra[1])
+		// fmt.Printf("\n")
+		counter += 1
 	}
-	//TCP sockets
-	// socks, e = netstat.TCPSocks(netstat.NoopFilter)
-	// if e != nil {
-	// 	log.Fatal("Failed to obtain TCP connections: ", e)
-	// 	os.Exit(1)
-	// }
-	// for _, t := range socks {
-	// 	fmt.Printf("%T\n", t)
-	// }
 
-	// // get only listening TCP sockets
-	// tabs, err := netstat.TCPSocks(func(s *netstat.SockTabEntry) bool {
-	// 	return s.State == netstat.Listen
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-	// for _, e := range tabs {
-	// 	fmt.Printf("%v\n", e)
-	// }
-
-	// // list all the TCP sockets in state FIN_WAIT_1 for your HTTP server
-	// tabs, err = netstat.TCPSocks(func(s *netstat.SockTabEntry) bool {
-	// 	return s.State == netstat.FinWait1 && s.LocalAddr.Port == 80
-	// })
-	// // error handling, etc.
-
-	// return nil
+	socks, _ = netstat.TCPSocks(func(s *netstat.SockTabEntry) bool {
+		return s.State  == netstat.Listen
+	})
+	fmt.Printf("||||||TCP SOCKETS LISTENING||||||\n")
+	x := 0
+	for _, u := range socks {
+		la := strings.Split(fmt.Sprintf("%s", u.LocalAddr), ":")
+		ra := strings.Split(fmt.Sprintf("%s", u.RemoteAddr), ":")
+		socket[counter].localIP = la[0]
+		socket[counter].localPort = la[1]
+		socket[counter].remoteIP = ra[0]
+		socket[counter].remotePort = ra[1]
+		fmt.Printf("%s:%s -- %s:%s",la[0],la[1],ra[0],ra[1])
+		fmt.Printf("\n")
+		counter += 1
+		x += 1
+	}
+	fmt.Printf("Length: %d\n", x)
 }
