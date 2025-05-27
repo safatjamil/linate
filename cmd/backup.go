@@ -1,16 +1,16 @@
 package cmd
 
 import (
-	"os"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"sort"
 	"strings"
-	_"log"
 	"time"
-	"github.com/spf13/cobra"
-	"github.com/rodaine/table"
+
 	"github.com/fatih/color"
+	"github.com/rodaine/table"
+	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -60,10 +60,10 @@ var deleteBackupCmd = &cobra.Command{
 }
 
 type FileInfo struct {
-	Name      string
-	Size      string
-	ModTime   string
-	Owner     string
+	Name    string
+	Size    string
+	ModTime string
+	Owner   string
 }
 
 func take_backup(cmd *cobra.Command, args []string) {
@@ -78,43 +78,39 @@ func take_backup(cmd *cobra.Command, args []string) {
 
 	d := dirExists(dir)
 	if d == false {
-		fmt.Printf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir)
-		os.Exit(1)
+		exitWithError(fmt.Sprintf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir))
 	}
-    
-    if dir[len(dir)-1:] == "/"{
+
+	if dir[len(dir)-1:] == "/" {
 		filePath = dir + file
 	} else {
 		filePath = dir + "/" + file
 		dir = dir + "/"
 	}
 
-    f := fileExists(filePath)
+	f := fileExists(filePath)
 	if f == false {
-		fmt.Printf("File '%s' does not exist or follows a strict permission. Please run as the superuser if the file really exists.\n", file)
-		os.Exit(1)
+		exitWithError(fmt.Sprintf("File '%s' does not exist or follows a strict permission. Please run as the superuser if the file really exists.\n", file))
 	}
-	for i:=1; i<100; i++ {
+
+	for i := 1; i < 100; i++ {
 		fn = fmt.Sprintf("%s-%d%s%d-%d", file, year, month, day, i)
 		_, e = os.Stat(dir + fn)
-		if e!= nil {
-            newFileName = fn
+		if e != nil {
+			newFileName = fn
 			break
 		}
 	}
 	if newFileName == "" {
-		fmt.Printf("It seems like there are already 99 backups.\n")
-		os.Exit(1)
+		exitWithError("It seems like there are already 99 backups.\n")
 	}
 
 	e = copyFile(dir+file, dir+newFileName)
 	if e != nil {
-		fmt.Printf("%sCan not create the backup file. Please run as the superuser if your user does not have permission to create a file in this directory.%s\n", colors["red"], colors["reset"])
-		os.Exit(1)
+		exitWithError(fmt.Sprintf("%sCan not create the backup file. Please run as the superuser if your user does not have permission to create a file in this directory.%s\n", colors["red"], colors["reset"]))
 	}
-    fmt.Printf("%slinate successfully created a backup file '%s'%s\n", colors["green"], newFileName, colors["reset"])
+	fmt.Printf("%slinate successfully created a backup file '%s'%s\n", colors["green"], newFileName, colors["reset"])
 }
-
 
 func check_backup(cmd *cobra.Command, args []string) {
 	var e error
@@ -122,15 +118,14 @@ func check_backup(cmd *cobra.Command, args []string) {
 	fileName, _ := cmd.Flags().GetString("file")
 	d := dirExists(dir)
 	if d == false {
-		fmt.Printf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir)
-		os.Exit(1)
+		exitWithError(fmt.Sprintf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir))
 	}
 
-	if dir[len(dir)-1:] != "/"{
+	if dir[len(dir)-1:] != "/" {
 		dir = dir + "/"
 	}
-    
-    files, e := ioutil.ReadDir(dir)
+
+	files, e := ioutil.ReadDir(dir)
 	if e != nil {
 		fmt.Println(e)
 		return
@@ -139,10 +134,10 @@ func check_backup(cmd *cobra.Command, args []string) {
 	sort.Slice(files, func(i, j int) bool {
 		return files[j].ModTime().Before(files[i].ModTime())
 	})
-    
+
 	var backups = make([]FileInfo, len(files))
 	counter := 0
-    var fn []string
+	var fn []string
 	var tm time.Time
 	for _, file := range files {
 		if file.IsDir() == true {
@@ -151,10 +146,10 @@ func check_backup(cmd *cobra.Command, args []string) {
 		fn = strings.Split(fmt.Sprintf("%s", file.Name()), "-")
 		if len(fn) > 1 && fn[0] == fileName {
 			tm = file.ModTime()
-            backups[counter].Name = file.Name()
+			backups[counter].Name = file.Name()
 			backups[counter].Size = fmt.Sprintf("%v byte", file.Size())
 			backups[counter].ModTime = fmt.Sprintf("%v-%v-%v | %v:%v", tm.Year(), tm.Month(), tm.Day(), tm.Hour(), tm.Minute())
-            ow, e := getFileOwner(dir + file.Name())
+			ow, e := getFileOwner(dir + file.Name())
 			if e == nil {
 				backups[counter].Owner = ow
 			} else {
@@ -163,7 +158,7 @@ func check_backup(cmd *cobra.Command, args []string) {
 			counter += 1
 		}
 	}
-    
+
 	viewLength := 100
 	if counter < viewLength {
 		viewLength = counter
@@ -173,22 +168,21 @@ func check_backup(cmd *cobra.Command, args []string) {
 		fmt.Printf("No backup found\n")
 		os.Exit(0)
 	}
-    
+
 	text_color := colors["yellow"]
 	reset_color := colors["reset"]
 	fmt.Printf("Total number of backups:%s %d%s\n", text_color, counter, reset_color)
 
-    headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
+	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
 	tbl := table.New("File Name", "Size", "Date | Time", "Owner")
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-	for i:=0; i<viewLength; i++ {
+	for i := 0; i < viewLength; i++ {
 		tbl.AddRow(backups[i].Name, backups[i].Size, backups[i].ModTime, backups[i].Owner)
 	}
 	tbl.Print()
 }
-
 
 func delete_backup(cmd *cobra.Command, args []string) {
 	var e error
@@ -197,15 +191,14 @@ func delete_backup(cmd *cobra.Command, args []string) {
 	number, _ := cmd.Flags().GetInt("number")
 	d := dirExists(dir)
 	if d == false {
-		fmt.Printf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir)
-		os.Exit(1)
+		exitWithError(fmt.Sprintf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir))
 	}
 
-	if dir[len(dir)-1:] != "/"{
+	if dir[len(dir)-1:] != "/" {
 		dir = dir + "/"
 	}
-    
-    files, e := ioutil.ReadDir(dir)
+
+	files, e := ioutil.ReadDir(dir)
 	if e != nil {
 		fmt.Println(e)
 		return
@@ -216,7 +209,7 @@ func delete_backup(cmd *cobra.Command, args []string) {
 	})
 	var backups = make([]FileInfo, len(files))
 	counter := 0
-    var fn []string
+	var fn []string
 	var tm time.Time
 	for _, file := range files {
 		if file.IsDir() == true {
@@ -225,10 +218,10 @@ func delete_backup(cmd *cobra.Command, args []string) {
 		fn = strings.Split(fmt.Sprintf("%s", file.Name()), "-")
 		if len(fn) > 1 && fn[0] == fileName {
 			tm = file.ModTime()
-            backups[counter].Name = file.Name()
+			backups[counter].Name = file.Name()
 			backups[counter].Size = fmt.Sprintf("%v byte", file.Size())
 			backups[counter].ModTime = fmt.Sprintf("%v-%v-%v | %v:%v", tm.Year(), tm.Month(), tm.Day(), tm.Hour(), tm.Minute())
-            ow, e := getFileOwner(dir + file.Name())
+			ow, e := getFileOwner(dir + file.Name())
 			if e == nil {
 				backups[counter].Owner = ow
 			} else {
@@ -240,25 +233,25 @@ func delete_backup(cmd *cobra.Command, args []string) {
 
 	toDelete := number
 	if number > counter {
-        toDelete = counter
+		toDelete = counter
 	}
-    fmt.Printf("%sFollowing %d backup file(s) will be deleted%s\n\n", colors["red"], toDelete, colors["reset"])
+	fmt.Printf("%sFollowing %d backup file(s) will be deleted%s\n\n", colors["red"], toDelete, colors["reset"])
 
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
 	tbl := table.New("File Name", "Size", "Date | Time", "Owner")
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-	for i:=0; i<toDelete; i++ {
+	for i := 0; i < toDelete; i++ {
 		tbl.AddRow(backups[i].Name, backups[i].Size, backups[i].ModTime, backups[i].Owner)
 	}
 	tbl.Print()
 	fmt.Printf("\n")
 	ok := yesNoPrompt("Do you want to delete?", false)
 	if ok == true {
-		for i:=0; i < toDelete; i++ {
-            e = os.Remove(dir + backups[i].Name)
-            if e == nil {
+		for i := 0; i < toDelete; i++ {
+			e = os.Remove(dir + backups[i].Name)
+			if e == nil {
 				fmt.Printf("%sFile %s has been deleted successfully%s\n", colors["green"], backups[i].Name, colors["reset"])
 			} else {
 				fmt.Printf("%sFile %s could not be deleted. Check file permission or run as the super user.%s\n", colors["red"], backups[i].Name, colors["reset"])

@@ -3,11 +3,11 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"runtime"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
@@ -25,8 +25,7 @@ func init() {
 	infoCmd.AddCommand(memCmd)
 	infoCmd.AddCommand(loadCmd)
 	infoCmd.AddCommand(processCmd)
-	processCmd.Flags().StringP("type", "t", "", "Get process information by memory and CPU usage. Available options are mem and cpu.")
-	processCmd.MarkFlagRequired("type")
+	processCmd.Flags().StringP("sort", "s", "", "Get process information by memory and CPU usage. Available options are mem and cpu.")
 }
 
 var colors = map[string]string{
@@ -104,11 +103,12 @@ type MemoryInfo struct {
 }
 
 type ProcessInfo struct {
-	PID         int32
-	User        string
-	Name        string
-	MemoryUsage float32
-	CPUUsage    float64
+	PID          int32
+	User         string
+	Name         string
+	MemoryUsage  float32
+	CPUUsage     float64
+	CreationTime string
 }
 
 func os_info(cmd *cobra.Command, args []string) {
@@ -163,7 +163,7 @@ func memory_info(cmd *cobra.Command, args []string) {
 func GetMemoryInfo() MemoryInfo {
 	f, e := os.Open(file["memory"])
 	if e != nil {
-		log.Fatal("Pleasde check the permission of the file /proc/meminfo. It must have read permission for 'others'", e)
+		exitWithError("Pleasde check the permission of the file /proc/meminfo. It must have read permission for 'others'")
 		defer f.Close()
 		os.Exit(1)
 	}
@@ -204,8 +204,7 @@ func parseLineForMemory(raw string) (key string, value int) {
 func load_info(cmd *cobra.Command, args []string) {
 	l, e := load.Avg()
 	if e != nil {
-		log.Fatal("Can not read load information", e)
-		os.Exit(1)
+		exitWithError("Can not read load information")
 	}
 	title := [3]string{"Load1", "Load5", "Load15"}
 	text_color := colors["yellow"]
@@ -216,16 +215,15 @@ func load_info(cmd *cobra.Command, args []string) {
 }
 
 func process_info(cmd *cobra.Command, args []string) {
-	typ, _ := cmd.Flags().GetString("type")
+	srt, _ := cmd.Flags().GetString("sort")
 	var display_type string
-	if typ != "mem" && typ != "cpu" {
-		log.Fatal("Incorrect value for the flag --type. Available options are mem and cpu.")
-		os.Exit(1)
+
+	if srt != "mem" && srt != "cpu" && srt != "longrun" {
+		exitWithError("Incorrect value for the flag --type. Available options are mem, cpu, and longrun.")
 	}
 	processes, e := process.Processes()
 	if e != nil {
-		log.Fatal("Can not read information about the processes", e)
-		os.Exit(1)
+		exitWithError("Can not read information about the processes")
 	}
 
 	// Load the data into proc
@@ -238,24 +236,29 @@ func process_info(cmd *cobra.Command, args []string) {
 		process.Name, _ = p.Name()
 		process.CPUUsage, _ = p.CPUPercent()
 		process.MemoryUsage, _ = p.MemoryPercent()
-		// process.CreationTime, _ = p.CreateTime()
+		cT, _ := p.CreateTime()
+		procTime := time.UnixMilli(cT)
+		process.CreationTime = fmt.Sprintf("%v-%v-%v %v:%v", procTime.Year(), procTime.Month(), procTime.Day(), procTime.Hour(), procTime.Minute())
 		proc[counter] = process
 		counter += 1
 	}
 
 	// Sort by memory usage
-	if typ == "mem" {
+	if srt == "mem" {
 		display_type = "Memory Usage(%)"
 		sort.Slice(proc, func(i, j int) bool {
 			return proc[i].MemoryUsage > proc[j].MemoryUsage
 		})
-	} else if typ == "cpu" {
+	} else if srt == "cpu" {
 		display_type = "CPU Usage(%)"
 		sort.Slice(proc, func(i, j int) bool {
 			return proc[i].CPUUsage > proc[j].CPUUsage
 		})
+	} else if srt == "longrun" {
+		display_type = "CPU(%) | Memory(%)"
 	}
-	viewLength := 15
+
+	viewLength := 20
 	if viewLength > len(proc) {
 		viewLength = len(proc)
 	}
@@ -263,20 +266,27 @@ func process_info(cmd *cobra.Command, args []string) {
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-	tbl := table.New("Process ID", "Name", "User", display_type)
-	if typ == "mem" {
+	tbl := table.New("Process ID", "Name", "User", display_type, "Started")
+	if srt == "mem" {
 		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 		for i := 0; i < viewLength; i++ {
 			memuse := fmt.Sprintf("%.2f", proc[i].MemoryUsage)
-			tbl.AddRow(proc[i].PID, proc[i].Name, proc[i].User, memuse)
+			tbl.AddRow(proc[i].PID, proc[i].Name, proc[i].User, memuse, proc[i].CreationTime)
 		}
-	} else if typ == "cpu" {
+	} else if srt == "cpu" {
 		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 		for i := 0; i < viewLength; i++ {
 			cpuuse := fmt.Sprintf("%.2f", proc[i].CPUUsage)
-			tbl.AddRow(proc[i].PID, proc[i].Name, proc[i].User, cpuuse)
+			tbl.AddRow(proc[i].PID, proc[i].Name, proc[i].User, cpuuse, proc[i].CreationTime)
+		}
+	} else if srt == "longrun" {
+		tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
+		for i := 0; i < viewLength; i++ {
+			cpuuse := fmt.Sprintf("%.2f", proc[i].CPUUsage)
+			memuse := fmt.Sprintf("%.2f", proc[i].MemoryUsage)
+			cm := fmt.Sprintf("%s | %s", cpuuse, memuse)
+			tbl.AddRow(proc[i].PID, proc[i].Name, proc[i].User, cm, proc[i].CreationTime)
 		}
 	}
-
 	tbl.Print()
 }

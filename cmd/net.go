@@ -2,17 +2,17 @@ package cmd
 
 import (
 	"fmt"
-	"log"
+	_ "log"
 	"net"
 	"os"
-	"time"
 	"strings"
+	"time"
 
+	"github.com/cakturk/go-netstat/netstat"
 	"github.com/fatih/color"
 	"github.com/jackpal/gateway"
 	"github.com/rodaine/table"
 	"github.com/spf13/cobra"
-	"github.com/cakturk/go-netstat/netstat"
 )
 
 func init() {
@@ -75,31 +75,31 @@ type Process struct {
 type SkState uint8
 
 type Socket struct {
-	ino             string
-	localIP         string
-	localPort       string
-	remoteIP        string
-	remotePort      string
-	state     		uint8
-	UID             uint32 
-	PID             int
-	processName     string
-	IP         		net.IP
-	port            uint16
-	conType         string
+	ino         string
+	localIP     string
+	localPort   string
+	remoteIP    string
+	remotePort  string
+	state       uint8
+	UID         uint32
+	PID         int
+	processName string
+	IP          net.IP
+	port        uint16
+	conType     string
 }
 
 var portMap = map[string]string{
-	"es": "9200",
-	"http": "80",
-	"https": "443",
-	"mysql": "3306",
-	"nfs": "2049",
-	"smtp": "25",
-	"ssh": "22",
+	"es":     "9200",
+	"http":   "80",
+	"https":  "443",
+	"mysql":  "3306",
+	"nfs":    "2049",
+	"smtp":   "25",
+	"ssh":    "22",
 	"sunrpc": "11",
-
 }
+
 func net_details_info(cmd *cobra.Command, args []string) {
 	interfaces, e := net.Interfaces()
 	if e != nil {
@@ -115,7 +115,7 @@ func net_details_info(cmd *cobra.Command, args []string) {
 		// Get a list of IP addresses for this network interface
 		addrs, e := inter.Addrs()
 		if e != nil {
-			lexitWithError("Failed to obtain IP address list.")
+			exitWithError("Failed to obtain IP address list.")
 		}
 		for _, addr := range addrs {
 			address = fmt.Sprintf("%s %s \n", address, addr)
@@ -178,7 +178,7 @@ func net_get_info(cmd *cobra.Command, args []string) {
 		fmt.Printf("\n")
 		counter += 1
 	}
-    
+
 	for _, v := range socket {
 		fmt.Printf("%s", v.localIP)
 		fmt.Printf("\n")
