@@ -5,6 +5,7 @@ go 1.24.2
 toolchain go1.24.3
 
 require (
+	github.com/bastjan/netstat v1.0.0 // indirect
 	github.com/cakturk/go-netstat v0.0.0-20200220111822-e5b49efee7a5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ebitengine/purego v0.8.2 // indirect

@@ -1,6 +1,5 @@
 /*
-Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
+Copyright © 2025 Shafat Jamil <safaetxaamil@gmail.com>
 */
 package main
 

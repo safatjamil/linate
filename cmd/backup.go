@@ -66,13 +66,13 @@ type FileInfo struct {
 	Owner   string
 }
 
+
 func take_backup(cmd *cobra.Command, args []string) {
 	var filePath string
 	year, month, day := time.Now().Date()
 	newFileName := ""
 	var fn string
 	var e error
-
 	dir, _ := cmd.Flags().GetString("dir")
 	file, _ := cmd.Flags().GetString("file")
 
@@ -81,6 +81,7 @@ func take_backup(cmd *cobra.Command, args []string) {
 		exitWithError(fmt.Sprintf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir))
 	}
 
+	// Add forward slash after dir
 	if dir[len(dir)-1:] == "/" {
 		filePath = dir + file
 	} else {
@@ -93,6 +94,7 @@ func take_backup(cmd *cobra.Command, args []string) {
 		exitWithError(fmt.Sprintf("File '%s' does not exist or follows a strict permission. Please run as the superuser if the file really exists.\n", file))
 	}
 
+	// Choose a filename
 	for i := 1; i < 100; i++ {
 		fn = fmt.Sprintf("%s-%d%s%d-%d", file, year, month, day, i)
 		_, e = os.Stat(dir + fn)
@@ -104,13 +106,15 @@ func take_backup(cmd *cobra.Command, args []string) {
 	if newFileName == "" {
 		exitWithError("It seems like there are already 99 backups.\n")
 	}
-
+    
+	// Copy the old file to the backup file
 	e = copyFile(dir+file, dir+newFileName)
 	if e != nil {
 		exitWithError(fmt.Sprintf("%sCan not create the backup file. Please run as the superuser if your user does not have permission to create a file in this directory.%s\n", colors["red"], colors["reset"]))
 	}
 	fmt.Printf("%slinate successfully created a backup file '%s'%s\n", colors["green"], newFileName, colors["reset"])
 }
+
 
 func check_backup(cmd *cobra.Command, args []string) {
 	var e error
@@ -121,16 +125,17 @@ func check_backup(cmd *cobra.Command, args []string) {
 		exitWithError(fmt.Sprintf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir))
 	}
 
+	// Add forward slash after dir
 	if dir[len(dir)-1:] != "/" {
 		dir = dir + "/"
 	}
-
 	files, e := ioutil.ReadDir(dir)
 	if e != nil {
 		fmt.Println(e)
 		return
 	}
 
+	// Sort by date modified
 	sort.Slice(files, func(i, j int) bool {
 		return files[j].ModTime().Before(files[i].ModTime())
 	})
@@ -140,11 +145,13 @@ func check_backup(cmd *cobra.Command, args []string) {
 	var fn []string
 	var tm time.Time
 	for _, file := range files {
+		// If file is a directory ignore
 		if file.IsDir() == true {
 			continue
 		}
+		// Check the filename
 		fn = strings.Split(fmt.Sprintf("%s", file.Name()), "-")
-		if len(fn) > 1 && fn[0] == fileName {
+		if len(fn) == 3 && fn[0] == fileName {
 			tm = file.ModTime()
 			backups[counter].Name = file.Name()
 			backups[counter].Size = fmt.Sprintf("%v byte", file.Size())
@@ -158,7 +165,8 @@ func check_backup(cmd *cobra.Command, args []string) {
 			counter += 1
 		}
 	}
-
+    
+	// Show 100 backups at most
 	viewLength := 100
 	if counter < viewLength {
 		viewLength = counter
@@ -168,21 +176,19 @@ func check_backup(cmd *cobra.Command, args []string) {
 		fmt.Printf("No backup found\n")
 		os.Exit(0)
 	}
-
-	text_color := colors["yellow"]
-	reset_color := colors["reset"]
-	fmt.Printf("Total number of backups:%s %d%s\n", text_color, counter, reset_color)
-
+	fmt.Printf("Total number of backups:%s %d%s\n", colors["yellow"], counter, colors["reset"])
+    
+	// Create the table view
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
 	tbl := table.New("File Name", "Size", "Date | Time", "Owner")
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
-
 	for i := 0; i < viewLength; i++ {
 		tbl.AddRow(backups[i].Name, backups[i].Size, backups[i].ModTime, backups[i].Owner)
 	}
 	tbl.Print()
 }
+
 
 func delete_backup(cmd *cobra.Command, args []string) {
 	var e error
@@ -193,7 +199,6 @@ func delete_backup(cmd *cobra.Command, args []string) {
 	if d == false {
 		exitWithError(fmt.Sprintf("Directory '%s' does not exist or follows a strict permission. Please run as the superuser if the directory really exists.\n", dir))
 	}
-
 	if dir[len(dir)-1:] != "/" {
 		dir = dir + "/"
 	}
@@ -204,9 +209,11 @@ func delete_backup(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	// Sort by date modified
 	sort.Slice(files, func(i, j int) bool {
 		return files[i].ModTime().Before(files[j].ModTime())
 	})
+
 	var backups = make([]FileInfo, len(files))
 	counter := 0
 	var fn []string
@@ -215,8 +222,9 @@ func delete_backup(cmd *cobra.Command, args []string) {
 		if file.IsDir() == true {
 			continue
 		}
+		// Choose the files, oldest first
 		fn = strings.Split(fmt.Sprintf("%s", file.Name()), "-")
-		if len(fn) > 1 && fn[0] == fileName {
+		if len(fn) == 3 && fn[0] == fileName {
 			tm = file.ModTime()
 			backups[counter].Name = file.Name()
 			backups[counter].Size = fmt.Sprintf("%v byte", file.Size())
@@ -247,6 +255,7 @@ func delete_backup(cmd *cobra.Command, args []string) {
 	}
 	tbl.Print()
 	fmt.Printf("\n")
+	// Show a yes/no prompt
 	ok := yesNoPrompt("Do you want to delete?", false)
 	if ok == true {
 		for i := 0; i < toDelete; i++ {

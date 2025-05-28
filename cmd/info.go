@@ -87,7 +87,6 @@ var usersCmd = &cobra.Command{
 	Run:   users_info,
 }
 
-
 type OsInfo struct {
 	Architecture  string
 	Distribution  string
@@ -97,37 +96,6 @@ type OsInfo struct {
 	CPUModel      string
 	TotalMemory   uint64
 	TotalDisk     uint64
-}
-
-type MemoryInfo struct {
-	MemTotal     int
-	MemFree      int
-	MemAvailable int
-	Buffers      int
-	Cached       int
-	SwapCached   int
-	Active       int
-	Inactive     int
-	SwapTotal    int
-	SwapFree     int
-}
-
-type ProcessInfo struct {
-	PID          int32
-	User         string
-	Name         string
-	MemoryUsage  float32
-	CPUUsage     float64
-	CreationTime string
-}
-
-type userInfo struct {
-	userName       string
-	userID         string
-	groupID        string
-	description    string
-	homeDirectory  string
-	shell          string
 }
 
 
@@ -160,6 +128,20 @@ func os_info(cmd *cobra.Command, args []string) {
 	fmt.Printf("%-20s %s%d MB%s\n", title[6], text_color, osinfo.TotalDisk, reset_color)
 }
 
+type MemoryInfo struct {
+	MemTotal     int
+	MemFree      int
+	MemAvailable int
+	Buffers      int
+	Cached       int
+	SwapCached   int
+	Active       int
+	Inactive     int
+	SwapTotal    int
+	SwapFree     int
+}
+
+
 func memory_info(cmd *cobra.Command, args []string) {
 	var memory MemoryInfo
 	memory = GetMemoryInfo()
@@ -181,6 +163,7 @@ func memory_info(cmd *cobra.Command, args []string) {
 }
 
 func GetMemoryInfo() MemoryInfo {
+	// Read the /proc/meminfo file
 	f, e := os.Open(file["memory"])
 	if e != nil {
 		exitWithError("Pleasde check the permission of the file /proc/meminfo. It must have read permission for 'others'")
@@ -221,6 +204,7 @@ func parseLineForMemory(raw string) (key string, value int) {
 	return res[0], toInt(res[1])
 }
 
+
 func load_info(cmd *cobra.Command, args []string) {
 	l, e := load.Avg()
 	if e != nil {
@@ -233,6 +217,16 @@ func load_info(cmd *cobra.Command, args []string) {
 	fmt.Printf("%-15s %s%f%s\n", title[1], text_color, l.Load5, reset_color)
 	fmt.Printf("%-15s %s%f%s\n", title[2], text_color, l.Load15, reset_color)
 }
+
+type ProcessInfo struct {
+	PID          int32
+	User         string
+	Name         string
+	MemoryUsage  float32
+	CPUUsage     float64
+	CreationTime string
+}
+
 
 func process_info(cmd *cobra.Command, args []string) {
 	srt, _ := cmd.Flags().GetString("sort")
@@ -277,12 +271,14 @@ func process_info(cmd *cobra.Command, args []string) {
 	} else if srt == "longrun" {
 		display_type = "CPU(%) | Memory(%)"
 	}
-
-	viewLength := 20
+    
+	// Display length
+	viewLength := 30
 	if viewLength > len(proc) {
 		viewLength = len(proc)
 	}
 
+	// Create the table view
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
 
@@ -314,9 +310,20 @@ func process_info(cmd *cobra.Command, args []string) {
 
 var shells = [] string {"bash", "csh", "ksh", "mksh", "oksh", "sh", "tcsh", "yash", "zsh"}
 var rootUserGroups = [] string {"sudo", "sudoers", "admin", "wheel", "staff"}
+type userInfo struct {
+	userName       string
+	userID         string
+	groupID        string
+	description    string
+	homeDirectory  string
+	shell          string
+}
+
+
 func users_info(cmd *cobra.Command, args []string) {
 	currYear :=  time.Now().Year()
 	currentUser, _ := getCurrentUser()
+	// Get all root users by group
 	su := ""
 	for _, g := range rootUserGroups{
         h, _ := getUsersByGroup(g)
@@ -330,6 +337,7 @@ func users_info(cmd *cobra.Command, args []string) {
 		fmt.Printf("%v\n", e)
 		os.Exit(0)
 	}
+	// Find real users. Must have a terminal
 	realUsers := make([]userInfo, size)
 	counter := 0
 	realUsersCounter := 0
@@ -376,6 +384,4 @@ func users_info(cmd *cobra.Command, args []string) {
     } else {
 		fmt.Printf("%sNo users found%s\n", colors["red"], colors["reset"])
 	}
-
-
 }

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -13,6 +14,7 @@ import (
 	"time"
 	"errors"
 )
+
 
 func toInt(raw string) int {
 	if raw == "" {
@@ -24,6 +26,7 @@ func toInt(raw string) int {
 	}
 	return res
 }
+
 
 func copyFile(src string, dst string) error {
 	source, e := os.Open(src)
@@ -41,6 +44,7 @@ func copyFile(src string, dst string) error {
 	return er
 }
 
+
 func dirExists(dir string) bool {
 	_, e := os.Stat(dir)
 	if e != nil {
@@ -49,6 +53,7 @@ func dirExists(dir string) bool {
 	return true
 }
 
+
 func fileExists(file string) bool {
 	_, e := os.Stat(file)
 	if e != nil {
@@ -56,6 +61,7 @@ func fileExists(file string) bool {
 	}
 	return true
 }
+
 
 func getFileOwner(fPath string) (string, error) {
 	fInfo, e := os.Stat(fPath)
@@ -75,6 +81,7 @@ func getFileOwner(fPath string) (string, error) {
 	}
 	return usr.Username, nil
 }
+
 
 func yesNoPrompt(label string, def bool) bool {
 	choices := "Y/n"
@@ -100,14 +107,17 @@ func yesNoPrompt(label string, def bool) bool {
 	}
 }
 
+
 func exitWithError(errorText string) {
 	fmt.Printf(errorText)
 	os.Exit(1)
 }
 
+
 func timeDifference(time1 time.Time, time2 time.Time) {
 	os.Exit(0)
 }
+
 
 func list_users() ([]userInfo, error, int) {
 	users := make([]userInfo, 1000)
@@ -136,6 +146,7 @@ func list_users() ([]userInfo, error, int) {
 	return users, nil, size
 }
 
+
 func getUsersByGroup (group string) (string, error) {
 	groupFound := false
 	f, e := os.Open("/etc/group")
@@ -159,6 +170,7 @@ func getUsersByGroup (group string) (string, error) {
 	}
 	return "", nil
 }
+
 
 func arrContains(source []string, search string) bool {
 	if search == "" {return false}
@@ -208,4 +220,47 @@ func getCurrentUser() (string, error) {
 	currentUser, e := user.Current()
 	if e != nil { return "", errors.New("Cannot get the username")}
 	return currentUser.Username, nil
+}
+
+
+func conMapContains(source map[string][]string, search string) bool {
+	_, ok := source[search]
+	if ok {return true}
+	return false
+}
+
+
+func portMapContains(source map[string]string, search string) bool {
+	_, ok := source[search]
+	if ok {return true}
+	return false
+}
+
+
+func isValidIP(ip string) bool {
+	parsedIP := net.ParseIP(ip)
+	return parsedIP != nil
+}
+
+
+func splitOnLast(mainString string, separator string) (string, string) {
+	lastIndex := len(mainString) - 1
+	for pos, val := range mainString {
+		if string(val) == separator {
+			lastIndex = pos
+		}
+	}
+	if lastIndex == len(mainString)-1 {
+		return mainString, ""
+	}
+	return mainString[:lastIndex], mainString[lastIndex+1:]
+}
+
+
+func getUsernameFromUID(uid int) (string, error) {
+	u, err := user.LookupId(strconv.Itoa(uid))
+	if err != nil {
+		return "", err
+	}
+	return u.Username, nil
 }
