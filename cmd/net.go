@@ -188,7 +188,7 @@ var portMap = map[string]string{
 	"9091": "Prometheus Pushgateway",
 	"9092": "Kafka",
 	"9200": "Elasticsearch",
-	"9300": "Elasticsearch Cluster",
+	"9300": "Elasticsearch Cluster Communication",
 	"9411": "Zipkin",
 	"9876": "OpenStack Loadbalancer service (Octavia)",
 	"10050": "Zabbix Agent",
