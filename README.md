@@ -8,25 +8,69 @@ Hold tight, more commands are coming.
 
 ## Commands
 ## 1) bk
+### Sub commands
 **1.1) bk take**
 <br/>Take backup of a file. The backup filename will be \<oldFilename>-\<year>\<month>\<day>-\<count>.<br />
 The backup file will be created in the same directory as the original file.<br/>
 **Flags**
-> --dir&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;directory of the original file that needs to be backed up<br/>
-> --file&nbsp;&nbsp;&nbsp;&nbsp;name of the file
-![Alt text](img/bk_take.png)
+```
+--dir     directory of the original file that needs to be backed up
+--file    name of the file
+```
+>![Alt text](img/bk_take.png)
 
 **1.2) bk check**
-<br />Check backup files from the newest to the oldest.<br/>
+<br/>Check backup files from the newest to the oldest.<br/>
 **Flags**
-> --dir&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;directory of the original file that needs to be backed up<br/>
-> --file&nbsp;&nbsp;&nbsp;&nbsp;name of the file
-![Alt text](img/bk_check.png)
+```
+--dir     directory of the original file that needs to be backed up
+--file    name of the file
+```
+>![Alt text](img/bk_check.png)
 
 **1.3) bk delete**
-<br />Delete backup files. The oldest one will be deleted first. A yes/no promt will be shown for confirmation<br />
+<br/>Delete backup files. The oldest one will be deleted first. A yes/no promt will be shown for confirmation<br />
 **Flags**
-> --dir&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;directory of the original file that needs to be backed up<br/>
-> --file&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name of the file<br/>
-> --number&nbsp;&nbsp;number of backup to delete. The default is 1
-![Alt text](img/bk_delete.png)
+```
+--dir     directory of the original file that needs to be backed up
+--file    name of the file
+--number  number of backup to delete. The default is 1
+```
+>![Alt text](img/bk_delete.png)
+
+## 2) info
+### Sub commands
+**2.1) info os**
+<br/>Get information about the OS, kernel, CPU, memory and others.<br />
+**Flags**
+> No flags<br/>
+>![Alt text](img/info_os.png)
+
+**2.2) info process**
+<br/>List processes. Sort by memory and CPU usage.<br />
+**Flags**
+```
+--sort   available options are mem, cpu, and longrun
+```
+>![Alt text](img/inf_prc_mem.png)</br>
+>![Alt text](img/inf_prc_cpu.png)</br>
+>![Alt text](img/info_prc_lngrun.png)
+
+**2.3) info memory**
+<br/>Get information about the memory usage, free and cached memory.<br />
+**Flags**
+> No flags<br/>
+>![Alt text](img/inf_memory.png)
+
+**2.4) info load**
+<br/>Get information about the system load. Load1, load5 and load15.<br />
+**Flags**
+> No flags<br/>
+>![Alt text](img/inf_load.png)
+
+**2.5) info users**
+<br/>Get information about the system users.<br />
+**Flags**
+> No flags<br/>
+>![Alt text](img/inf_users.png)
+
