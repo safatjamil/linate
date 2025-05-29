@@ -74,3 +74,23 @@ The backup file will be created in the same directory as the original file.<br/>
 > No flags<br/>
 >![Alt text](img/inf_users.png)
 
+## 3) net
+### Sub commands
+**3.1) net details**
+<br/>Information about network interfaces and gateway.<br />
+**Flags**
+> No flags<br/>
+>![Alt text](img/net_det.png)
+
+**3.2) net socket**
+<br/>Information about listening and established sockets. Shows services instead of ports.</br>
+You can get an overview of the services that are running on the machine.<br />
+**Flags**
+> No flags<br/>
+>![Alt text](img/net_socket.png)
+
+**3.3) net conn**
+<br/>Check internet connection.<br />
+**Flags**
+> No flags<br/>
+>![Alt text](img/net_conn.png)
