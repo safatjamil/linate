@@ -31,7 +31,7 @@ If your file is in the current directory you do not need the --dir flag.<br/>
 If your file is in the current directory you do not need the --dir flag.<br/>
 **Flags**
 ```
---dir     directory of the original file that needs to be backed up. Default is the current directory
+--dir     directory where you want to check the backup files. Default is the current directory
 --file    name of the file
 ```
 >![Alt text](img/bk_check.png)
@@ -41,7 +41,7 @@ If your file is in the current directory you do not need the --dir flag.<br/>
 If your file is in the current directory you do not need the --dir flag.<br/>
 **Flags**
 ```
---dir     directory of the original file that needs to be backed up. Default is the current directory
+--dir     directory where the backup files are located. Default is the current directory
 --file    name of the file
 --number  number of backup to delete. The default is 1
 ```
