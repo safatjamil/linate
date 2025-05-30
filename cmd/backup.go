@@ -19,16 +19,13 @@ func init() {
 	backUpCmd.AddCommand(deleteBackupCmd)
 	takeBackupCmd.Flags().StringP("dir", "d", "", "Enter the directory of the file, absolute directory not relative.")
 	takeBackupCmd.Flags().StringP("file", "f", "", "Enter the filename")
-	takeBackupCmd.MarkFlagRequired("dir")
 	takeBackupCmd.MarkFlagRequired("file")
 	checkBackupCmd.Flags().StringP("dir", "d", "", "Enter the directory of the file, absolute directory not relative.")
 	checkBackupCmd.Flags().StringP("file", "f", "", "Enter the filename")
-	checkBackupCmd.MarkFlagRequired("dir")
 	checkBackupCmd.MarkFlagRequired("file")
 	deleteBackupCmd.Flags().StringP("dir", "d", "", "Enter the directory of the file, absolute directory not relative.")
 	deleteBackupCmd.Flags().StringP("file", "f", "", "Enter the filename")
 	deleteBackupCmd.Flags().IntP("number", "n", 1, "How many backups you want to delete. The oldest one will be deleted first.")
-	deleteBackupCmd.MarkFlagRequired("dir")
 	deleteBackupCmd.MarkFlagRequired("file")
 }
 
@@ -66,6 +63,7 @@ type FileInfo struct {
 	Owner   string
 }
 
+var currDir, _ = os.Getwd()
 
 func take_backup(cmd *cobra.Command, args []string) {
 	var filePath string
@@ -74,6 +72,9 @@ func take_backup(cmd *cobra.Command, args []string) {
 	var fn string
 	var e error
 	dir, _ := cmd.Flags().GetString("dir")
+	if dir == "" {
+		dir = currDir
+	}
 	file, _ := cmd.Flags().GetString("file")
 
 	d := dirExists(dir)
@@ -91,7 +92,7 @@ func take_backup(cmd *cobra.Command, args []string) {
 
 	f := fileExists(filePath)
 	if f == false {
-		exitWithError(fmt.Sprintf("File '%s' does not exist or follows a strict permission. Please run as the superuser if the file really exists.\n", file))
+		exitWithError(fmt.Sprintf("File '%s' does not exist in the directory %v or follows a strict permission. Please run as the superuser if the file really exists.\n", file, dir))
 	}
 
 	// Choose a filename
@@ -106,7 +107,7 @@ func take_backup(cmd *cobra.Command, args []string) {
 	if newFileName == "" {
 		exitWithError("It seems like there are already 99 backups.\n")
 	}
-    
+
 	// Copy the old file to the backup file
 	e = copyFile(dir+file, dir+newFileName)
 	if e != nil {
@@ -115,10 +116,12 @@ func take_backup(cmd *cobra.Command, args []string) {
 	fmt.Printf("%slinate successfully created a backup file '%s'%s\n", colors["green"], newFileName, colors["reset"])
 }
 
-
 func check_backup(cmd *cobra.Command, args []string) {
 	var e error
 	dir, _ := cmd.Flags().GetString("dir")
+	if dir == "" {
+		dir = currDir
+	}
 	fileName, _ := cmd.Flags().GetString("file")
 	d := dirExists(dir)
 	if d == false {
@@ -165,7 +168,7 @@ func check_backup(cmd *cobra.Command, args []string) {
 			counter += 1
 		}
 	}
-    
+
 	// Show 100 backups at most
 	viewLength := 100
 	if counter < viewLength {
@@ -177,7 +180,7 @@ func check_backup(cmd *cobra.Command, args []string) {
 		os.Exit(0)
 	}
 	fmt.Printf("Total number of backups:%s %d%s\n", colors["yellow"], counter, colors["reset"])
-    
+
 	// Create the table view
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
@@ -189,10 +192,12 @@ func check_backup(cmd *cobra.Command, args []string) {
 	tbl.Print()
 }
 
-
 func delete_backup(cmd *cobra.Command, args []string) {
 	var e error
 	dir, _ := cmd.Flags().GetString("dir")
+	if dir == "" {
+		dir = currDir
+	}
 	fileName, _ := cmd.Flags().GetString("file")
 	number, _ := cmd.Flags().GetInt("number")
 	d := dirExists(dir)
