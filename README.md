@@ -2,7 +2,7 @@
 Linate, a linux associate , is a CLI tool for Linux systems. It's a unified tool that helps you to do many things 
 from a single place. Linux users run commands and may open many files to do a single task. With linate you will 
 run simple commands to perform complex tasks. Right now linate comes with 4 commands and associated sub commands.
-Hold tight, more commands are coming.
+More commands are coming.
 > [!NOTE]
 > For bug reporting, feedback, and command suggestion please send an email to safaetxaamil@gmail.com .
 
