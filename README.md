@@ -38,7 +38,7 @@ If your file is in the current directory you do not need the --dir flag.<br/>
 
 **1.3) bk delete**
 <br/>Delete backup files. The oldest one will be deleted first. Yes/no promt will be shown for confirmation.<br/>
-If your file is in the current directory you do not need the --dir flag.
+If your file is in the current directory you do not need the --dir flag.<br/>
 **Flags**
 ```
 --dir     directory of the original file that needs to be backed up. Default is the current directory
