@@ -14,7 +14,7 @@ Hold tight, more commands are coming.
 The backup file will be created in the same directory as the original file.<br/>
 **Flags**
 ```
---dir     directory of the original file that needs to be backed up
+--dir     directory of the original file that needs to be backed up. Default is the current directory
 --file    name of the file
 ```
 >![Alt text](img/bk_take.png)
@@ -23,7 +23,7 @@ The backup file will be created in the same directory as the original file.<br/>
 <br/>Check backup files from the newest to the oldest.<br/>
 **Flags**
 ```
---dir     directory of the original file that needs to be backed up
+--dir     directory of the original file that needs to be backed up. Default is the current directory
 --file    name of the file
 ```
 >![Alt text](img/bk_check.png)
@@ -32,7 +32,7 @@ The backup file will be created in the same directory as the original file.<br/>
 <br/>Delete backup files. The oldest one will be deleted first. A yes/no promt will be shown for confirmation<br />
 **Flags**
 ```
---dir     directory of the original file that needs to be backed up
+--dir     directory of the original file that needs to be backed up. Default is the current directory
 --file    name of the file
 --number  number of backup to delete. The default is 1
 ```
