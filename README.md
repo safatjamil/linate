@@ -1,10 +1,16 @@
 # Linate
 Linate, a linux associate , is a CLI tool for Linux systems. It's a unified tool that helps you to do many things 
 from a single place. Linux users run commands and may open many files to do a single task. With linate you will 
-run simple commands to perform complex tasks. Right now linate comes with 3 commands and associated sub commands.
+run simple commands to perform complex tasks. Right now linate comes with 4 commands and associated sub commands.
 Hold tight, more commands are coming.
 > [!NOTE]
-> For bug reporting, feedback, and command suggestions please send an email to safaetxaamil@gmail.com .
+> For bug reporting, feedback, and command suggestion please send an email to safaetxaamil@gmail.com .
+
+## Installation
+```
+curl -O https://github.com/safatjamil/linate/releases/download/v1stable/linate
+sudo install linate -t /usr/local/bin
+```
 
 ## Commands
 ## 1) bk
@@ -12,6 +18,7 @@ Hold tight, more commands are coming.
 **1.1) bk take**
 <br/>Take backup of a file. The backup filename will be \<oldFilename>-\<year>\<month>\<day>-\<count>.<br />
 The backup file will be created in the same directory as the original file.<br/>
+If your file is in the current directory you do not need the --dir flag.<br/>
 **Flags**
 ```
 --dir     directory of the original file that needs to be backed up. Default is the current directory
@@ -21,6 +28,7 @@ The backup file will be created in the same directory as the original file.<br/>
 
 **1.2) bk check**
 <br/>Check backup files from the newest to the oldest.<br/>
+If your file is in the current directory you do not need the --dir flag.<br/>
 **Flags**
 ```
 --dir     directory of the original file that needs to be backed up. Default is the current directory
@@ -29,7 +37,8 @@ The backup file will be created in the same directory as the original file.<br/>
 >![Alt text](img/bk_check.png)
 
 **1.3) bk delete**
-<br/>Delete backup files. The oldest one will be deleted first. A yes/no promt will be shown for confirmation<br />
+<br/>Delete backup files. The oldest one will be deleted first. Yes/no promt will be shown for confirmation.<br/>
+If your file is in the current directory you do not need the --dir flag.
 **Flags**
 ```
 --dir     directory of the original file that needs to be backed up. Default is the current directory
@@ -94,3 +103,6 @@ You can get an overview of the services that are running on the machine.<br />
 **Flags**
 > No flags<br/>
 >![Alt text](img/net_conn.png)
+
+## 4) version
+See the version of linate
