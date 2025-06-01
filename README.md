@@ -8,7 +8,8 @@ More commands are coming.
 
 ## Installation
 ```
-curl -O https://github.com/safatjamil/linate/releases/download/v1stable/linate
+wget https://github.com/safatjamil/linate/releases/download/v1stable/linate
+chmod +x linate
 sudo install linate -t /usr/local/bin
 ```
 
