@@ -105,5 +105,5 @@ You can get an overview of the services that are running on the machine.<br />
 > No flags<br/>
 >![Alt text](img/net_conn.png)
 
-## 4) version
-See the version of linate
+## 4) Terraform and Kubernetes
+
